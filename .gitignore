@@ -9,3 +9,5 @@ NOTES.md
 *.notes.md
 *.notes.txt
 internal-docs/
+# Build artifacts (created by smoke builds)
+build/

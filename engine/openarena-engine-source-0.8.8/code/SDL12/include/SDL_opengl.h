@@ -3119,9 +3119,13 @@ typedef ptrdiff_t GLsizeiptrARB;
 #endif
 
 #ifndef GL_ARB_shader_objects
+#if !defined(__APPLE__)
 /* GL types for handling shader object handles and program/shader text */
 typedef char GLcharARB;		/* native character */
 typedef unsigned int GLhandleARB;	/* shader object handle */
+#endif /* !__APPLE__: Apple's OpenGL/gltypes.h already defines these
+          (GLhandleARB is void* there); a different re-typedef is a hard
+          error in modern clang */
 #endif
 
 /* GL types for "half" precision (s10e5) float data in host memory */

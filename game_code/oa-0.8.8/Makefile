@@ -14,7 +14,8 @@ ifeq ($(COMPILE_PLATFORM),sunos)
 endif
 ifeq ($(COMPILE_PLATFORM),darwin)
   # Apple does some things a little differently...
-  COMPILE_ARCH=$(shell uname -p | sed -e s/i.86/i386/)
+  # uname -m: uname -p reports "arm" on Apple Silicon; we need "arm64".
+  COMPILE_ARCH=$(shell uname -m | sed -e s/i.86/i386/)
 endif
 
 ifeq ($(COMPILE_PLATFORM),mingw32)
@@ -340,6 +341,10 @@ else # ifeq Linux
 
 ifeq ($(PLATFORM),darwin)
   HAVE_VM_COMPILED=true
+  # No arm64 QVM JIT exists; use the interpreter (roadmap.md decision 2).
+  ifeq ($(ARCH),arm64)
+    HAVE_VM_COMPILED=false
+  endif
   CLIENT_LIBS=
   OPTIMIZE=
   
