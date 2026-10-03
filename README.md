@@ -1,4 +1,21 @@
-# OpenArena Legacy Repository #
+
+# OpenArena Legacy for Apple Silicon.
+
+I want to preface by saying this port/recompilation is simply because I wish to play the game on my laptop.
+I grew up playing OpenArena, back then it was on a 32 bit laptop running ubuntu 8.04. Back then I didn't even have a mouse, so I got decent with the trackpad.
+
+Coding agents are being used on this endeavor and I make no claim in terms of skill or talent when it comes to this codebase.
+This is simply me solving a problem and satisfying a need.
+
+No modifications to assets or art will be made. Any modification to game code is for the express purpose of making it compile and run on M1 and above chips. 
+
+Controller/gamepad support may be added.
+
+For now I will ad hoc sign.
+
+## Build instructions
+
+## OpenArena Legacy Repository
 
 Legacy source code releases from [OpenArena](http://openarena.ws).
 The game data is still in OpenArena's SVN repository hosted on the site itself.
