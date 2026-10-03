@@ -389,7 +389,8 @@ ifeq ($(PLATFORM),darwin)
   endif
   LIBS = -framework Cocoa
   CLIENT_LIBS=
-  OPTIMIZEVM=
+  # -O2: the old darwin block set no -O level; unoptimized builds are not playable.
+  OPTIMIZEVM=-O2
   
   BASE_CFLAGS = -Wall -Wimplicit -Wstrict-prototypes
   CLIENT_CFLAGS = 
@@ -444,13 +445,14 @@ ifeq ($(PLATFORM),darwin)
     BASE_CFLAGS += -I$(SDLHDIR)/include
   endif
 
-  # We copy sdlmain before ranlib'ing it so that subversion doesn't think
-  #  the file has been modified by each build.
-  LIBSDLMAIN=$(B)/libSDLmain.a
-  LIBSDLMAINSRC=$(LIBSDIR)/macosx/libSDLmain.a
+  # The prebuilt code/libs/macosx SDL is ppc/i386 only. Link sdl12-compat
+  # (SDL 1.2 API on SDL2) from Homebrew instead.
+  BREW_PREFIX ?= $(shell brew --prefix 2>/dev/null)
+  LIBSDLMAIN=
+  LIBSDLMAINSRC=
   CLIENT_LIBS += -framework Cocoa -framework IOKit -framework OpenGL \
-    $(LIBSDIR)/macosx/libSDL-1.2.0.dylib
-  RENDERER_LIBS += -framework OpenGL $(LIBSDIR)/macosx/libSDL-1.2.0.dylib
+    -L$(BREW_PREFIX)/lib -lSDLmain -lSDL
+  RENDERER_LIBS += -framework OpenGL -L$(BREW_PREFIX)/lib -lSDL
   OPTIMIZEVM += -falign-loops=16
   OPTIMIZE = $(OPTIMIZEVM) -ffast-math
 
