@@ -416,18 +416,24 @@ void CL_JoystickMove( usercmd_t *cmd ) {
 	}
 
 	if ( !in_strafe.active ) {
-		cl.viewangles[YAW] += anglespeed * 140.0 * cl.joystickAxis[AXIS_SIDE];
+		cl.viewangles[YAW] += anglespeed * 140.0 * cl.joystickAxis[AXIS_SIDE] / 127.0;
 	} else {
 		cmd->rightmove = ClampChar( cmd->rightmove + cl.joystickAxis[AXIS_SIDE] );
 	}
 
 	if ( in_mlooking ) {
-		cl.viewangles[PITCH] += anglespeed * 140.0 * cl.joystickAxis[AXIS_FORWARD];
+		cl.viewangles[PITCH] += anglespeed * 140.0 * cl.joystickAxis[AXIS_FORWARD] / 127.0;
 	} else {
 		cmd->forwardmove = ClampChar( cmd->forwardmove + cl.joystickAxis[AXIS_FORWARD] );
 	}
 
 	cmd->upmove = ClampChar( cmd->upmove + cl.joystickAxis[AXIS_UP] );
+
+	// QOL controller support: the right stick looks around. AXIS_YAW and
+	// AXIS_PITCH existed but were never applied. Values are -127..127; the
+	// /127.0 keeps look speed sane at full deflection (140 deg/s).
+	cl.viewangles[YAW] += anglespeed * 140.0 * cl.joystickAxis[AXIS_YAW] / 127.0;
+	cl.viewangles[PITCH] += anglespeed * 140.0 * cl.joystickAxis[AXIS_PITCH] / 127.0;
 }
 
 /*

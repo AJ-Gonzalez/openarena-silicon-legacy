@@ -67,6 +67,7 @@ static cvar_t *in_joystick          = NULL;
 static cvar_t *in_joystickDebug     = NULL;
 static cvar_t *in_joystickThreshold = NULL;
 static cvar_t *in_joystickNo        = NULL;
+static cvar_t *joy_analog           = NULL;
 
 static int vidRestartTime = 0;
 
@@ -647,6 +648,7 @@ IN_JoyMove
 static void IN_JoyMove( void )
 {
 	qboolean joy_pressed[ARRAY_LEN(joy_keys)];
+	qboolean analog_active;
 	unsigned int axes = 0;
 	unsigned int hats = 0;
 	int total = 0;
@@ -793,6 +795,10 @@ static void IN_JoyMove( void )
 
 	// finally, look at the axes...
 	total = SDL_JoystickNumAxes(stick);
+	// QOL controller support: with joy_analog the sticks feed analog movement
+	// (SE_JOYSTICK_AXIS) in game; in menus the arrow-key behavior below is
+	// kept so the sticks can navigate.
+	analog_active = ( joy_analog->integer && !Key_GetCatcher( ) ) ? qtrue : qfalse;
 	if (total > 0)
 	{
 		if (total > 16) total = 16;
@@ -800,6 +806,26 @@ static void IN_JoyMove( void )
 		{
 			Sint16 axis = SDL_JoystickGetAxis(stick, i);
 			float f = ( (float) axis ) / 32767.0f;
+			// Axes 4-5 are the triggers on game controllers
+			// (SDL12COMPAT_USE_GAME_CONTROLLERS). They rest at -1 and press
+			// towards +1; normalize so they do not hold a key down at rest.
+			if ( i == 4 || i == 5 )
+				f = ( f + 1.0f ) * 0.5f;
+
+			if ( analog_active && i < 4 )
+			{
+				int val = (int)( f * 127.0f );
+				if (val > 127) val = 127;
+				else if (val < -127) val = -127;
+				switch (i)
+				{
+					case 0: Com_QueueEvent( 0, SE_JOYSTICK_AXIS, AXIS_SIDE,    val,  0, NULL ); break;
+					case 1: Com_QueueEvent( 0, SE_JOYSTICK_AXIS, AXIS_FORWARD, -val, 0, NULL ); break;
+					case 2: Com_QueueEvent( 0, SE_JOYSTICK_AXIS, AXIS_YAW,     val,  0, NULL ); break;
+					case 3: Com_QueueEvent( 0, SE_JOYSTICK_AXIS, AXIS_PITCH,   val,  0, NULL ); break;
+				}
+			}
+
 			if( f < -in_joystickThreshold->value ) {
 				axes |= ( 1 << ( i * 2 ) );
 			} else if( f > in_joystickThreshold->value ) {
@@ -812,6 +838,11 @@ static void IN_JoyMove( void )
 	if (axes != stick_state.oldaxes)
 	{
 		for( i = 0; i < 16; i++ ) {
+			// Bits 0-7 are the stick directions; with analog active they are
+			// movement axes instead of arrow keys.
+			if ( analog_active && i < 8 )
+				continue;
+
 			if( ( axes & ( 1 << i ) ) && !( stick_state.oldaxes & ( 1 << i ) ) ) {
 				Com_QueueEvent( 0, SE_KEY, joy_keys[i], qtrue, 0, NULL );
 			}
@@ -997,6 +1028,8 @@ void IN_Init( void )
 	in_joystick = Cvar_Get( "in_joystick", "0", CVAR_ARCHIVE|CVAR_LATCH );
 	in_joystickDebug = Cvar_Get( "in_joystickDebug", "0", CVAR_TEMP );
 	in_joystickThreshold = Cvar_Get( "in_joystickThreshold", "0.15", CVAR_ARCHIVE );
+	// QOL controller support: analog sticks in game (see IN_JoyMove).
+	joy_analog = Cvar_Get( "joy_analog", "1", CVAR_ARCHIVE );
 
 #ifdef MACOS_X_ACCELERATION_HACK
 	in_disablemacosxmouseaccel = Cvar_Get( "in_disablemacosxmouseaccel", "1", CVAR_ARCHIVE );

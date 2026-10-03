@@ -37,7 +37,9 @@ class Openarena < Formula
       #!/bin/bash
       # SDL12COMPAT_FIX_BORDERLESS_FS_WIN=0: keep sdl12-compat from promoting
       # the game window to a macOS fullscreen Space (weird Space switching).
+      # SDL12COMPAT_USE_GAME_CONTROLLERS=1: consistent mapped pad layout.
       export SDL12COMPAT_FIX_BORDERLESS_FS_WIN=0
+      export SDL12COMPAT_USE_GAME_CONTROLLERS=1
       exec "#{prefix}/OpenArena.app/Contents/MacOS/openarena" "$@"
     SH
   end

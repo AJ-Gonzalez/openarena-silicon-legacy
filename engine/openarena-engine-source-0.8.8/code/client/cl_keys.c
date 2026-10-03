@@ -1172,8 +1172,41 @@ CL_KeyDownEvent
 Called by CL_KeyEvent to handle a keypress
 ===================
 */
+/*
+=================
+CL_GamepadTranslateKey
+
+QOL controller support: map pad buttons (game-controller layout, see
+SDL12COMPAT_USE_GAME_CONTROLLERS) to keys the menu and the special key
+handling understand. Start is Escape everywhere (menu / back). In menus, the
+console and chat, A/B and the dpad act as Enter/Escape/arrows. In game the
+buttons stay JOY keys and use binds.
+=================
+*/
+static int CL_GamepadTranslateKey( int key )
+{
+	if ( key == K_JOY7 )
+		return K_ESCAPE;
+
+	if ( Key_GetCatcher( ) & ( KEYCATCH_UI | KEYCATCH_MESSAGE | KEYCATCH_CONSOLE ) )
+	{
+		switch ( key )
+		{
+			case K_JOY1:  return K_ENTER;
+			case K_JOY2:  return K_ESCAPE;
+			case K_JOY12: return K_UPARROW;
+			case K_JOY13: return K_DOWNARROW;
+			case K_JOY14: return K_LEFTARROW;
+			case K_JOY15: return K_RIGHTARROW;
+		}
+	}
+	return key;
+}
+
 void CL_KeyDownEvent( int key, unsigned time )
 {
+	key = CL_GamepadTranslateKey( key );
+
 	keys[key].down = qtrue;
 	keys[key].repeats++;
 	if( keys[key].repeats == 1 )
@@ -1274,6 +1307,8 @@ Called by CL_KeyEvent to handle a keyrelease
 */
 void CL_KeyUpEvent( int key, unsigned time )
 {
+	key = CL_GamepadTranslateKey( key );
+
 	keys[key].repeats = 0;
 	keys[key].down = qfalse;
 	anykeydown--;

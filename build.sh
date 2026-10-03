@@ -124,6 +124,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 	<key>LSEnvironment</key>
 	<dict>
 		<key>SDL12COMPAT_FIX_BORDERLESS_FS_WIN</key><string>0</string>
+		<key>SDL12COMPAT_USE_GAME_CONTROLLERS</key><string>1</string>
 	</dict>
 </dict>
 </plist>
