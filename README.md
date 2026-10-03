@@ -13,7 +13,36 @@ Controller/gamepad support may be added.
 
 For now I will ad hoc sign.
 
+## Install via Homebrew
+
+```sh
+brew tap AJ-Gonzalez/openarena https://github.com/AJ-Gonzalez/openarena-silicon-legacy.git
+brew install --HEAD AJ-Gonzalez/openarena/openarena
+```
+
+This builds the engine and game code and installs `OpenArena.app` with the
+official 0.8.8 game data (pinned and checksum-verified). Launch it with
+`open "$(brew --prefix)/opt/openarena/OpenArena.app"` or run `openarena`.
+
 ## Build instructions
+
+One command:
+
+```sh
+./build.sh
+```
+
+It checks the dependencies, builds the engine and game code, downloads the
+official 0.8.8 game data (checksum-verified), assembles `OpenArena.app`, and
+installs it to `/Applications`.
+
+Dependencies:
+
+* macOS on Apple Silicon (arm64)
+* [Homebrew](https://brew.sh)
+* Xcode Command Line Tools (`xcode-select --install`)
+* Homebrew packages: `sdl12-compat`, `libogg`, `libvorbis`
+  (`build.sh` installs these if they are missing)
 
 ## OpenArena Legacy Repository
 
