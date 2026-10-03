@@ -121,6 +121,10 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 	<key>CFBundlePackageType</key><string>APPL</string>
 	<key>CFBundleShortVersionString</key><string>0.8.8</string>
 	<key>LSMinimumSystemVersion</key><string>11.0</string>
+	<key>LSEnvironment</key>
+	<dict>
+		<key>SDL12COMPAT_FIX_BORDERLESS_FS_WIN</key><string>0</string>
+	</dict>
 </dict>
 </plist>
 PLIST

@@ -35,6 +35,9 @@ class Openarena < Formula
 
     (bin/"openarena").write <<~SH
       #!/bin/bash
+      # SDL12COMPAT_FIX_BORDERLESS_FS_WIN=0: keep sdl12-compat from promoting
+      # the game window to a macOS fullscreen Space (weird Space switching).
+      export SDL12COMPAT_FIX_BORDERLESS_FS_WIN=0
       exec "#{prefix}/OpenArena.app/Contents/MacOS/openarena" "$@"
     SH
   end

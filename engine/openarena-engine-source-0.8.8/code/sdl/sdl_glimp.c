@@ -503,7 +503,7 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 
 		if (!(vidscreen = SDL_SetVideoMode(glConfig.vidWidth, glConfig.vidHeight, colorbits, flags)))
 		{
-			ri.Printf( PRINT_DEVELOPER, "SDL_SetVideoMode failed: %s\n", SDL_GetError( ) );
+			ri.Printf( PRINT_ALL, "WARNING: SDL_SetVideoMode failed: %s\n", SDL_GetError( ) );
 			continue;
 		}
 
@@ -527,6 +527,16 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 	}
 
 	screen = vidscreen;
+
+	// QOL: report the window state we actually got, not just the state we
+	// asked for. sdl12-compat may hand back something different.
+	if ( fullscreen && !( screen->flags & SDL_FULLSCREEN ) )
+	{
+		glConfig.isFullscreen = qfalse;
+		ri.Printf( PRINT_ALL, "WARNING: fullscreen requested but the window is not fullscreen; using windowed output\n" );
+	}
+	ri.Printf( PRINT_ALL, "GLimp_SetMode: %dx%d %s\n", glConfig.vidWidth, glConfig.vidHeight,
+			glConfig.isFullscreen ? "fullscreen" : "windowed" );
 
 	glstring = (char *) qglGetString (GL_RENDERER);
 	ri.Printf( PRINT_ALL, "GL_RENDERER: %s\n", glstring );
@@ -909,11 +919,17 @@ void GLimp_Init( void )
 	if(GLimp_StartDriverAndSetMode(r_mode->integer, r_fullscreen->integer, qfalse))
 		goto success;
 
+	// QOL: before dropping to the safe mode, try the requested size windowed
+	// so a fullscreen failure keeps the user's resolution.
+	ri.Printf( PRINT_ALL, "WARNING: video mode set failed; trying r_mode %d windowed\n", r_mode->integer );
+	if(GLimp_StartDriverAndSetMode(r_mode->integer, qfalse, qfalse))
+		goto success;
+
 	// Finally, try the default screen resolution
 	if( r_mode->integer != R_MODE_FALLBACK )
 	{
-		ri.Printf( PRINT_ALL, "Setting r_mode %d failed, falling back on r_mode %d\n",
-				r_mode->integer, R_MODE_FALLBACK );
+		ri.Printf( PRINT_ALL, "WARNING: Setting r_mode %d failed, falling back on r_mode %d (640x480 windowed). r_fullscreen stays %d and applies on the next start\n",
+				r_mode->integer, R_MODE_FALLBACK, r_fullscreen->integer );
 
 		if(GLimp_StartDriverAndSetMode(R_MODE_FALLBACK, qfalse, qfalse))
 			goto success;
