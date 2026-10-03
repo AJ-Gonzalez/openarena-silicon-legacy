@@ -4,6 +4,11 @@
 # One run does everything: dependencies, build, game data, install.
 # Result: /Applications/OpenArena.app, playable on Apple Silicon.
 # Plan: roadmap.md Phase 5.
+#
+# Env overrides (used by the Homebrew formula; normal runs need none):
+#   SKIP_DEPS=1        do not check/install Homebrew packages (caller has them)
+#   OA_DATA_ZIP=path   use this game data zip instead of downloading
+#   OA_INSTALL_DIR=dir install OpenArena.app here instead of /Applications
 
 set -euo pipefail
 
@@ -22,7 +27,7 @@ GAMECODE_BUILD="$GAMECODE_DIR/build/release-darwin-arm64"
 # verified here. md5 is the checksum published by the OpenArena team.
 DATA_URL="https://archive.org/download/openarena-0.8.8/openarena-0.8.8.zip"
 DATA_MD5="9f353d96d7889c377349d692c3905e5b"
-DATA_ZIP="$CACHE/openarena-0.8.8.zip"
+DATA_ZIP="${OA_DATA_ZIP:-$CACHE/openarena-0.8.8.zip}"
 
 step() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 die()  { printf '\033[31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
@@ -36,16 +41,20 @@ echo "OK: macOS $(uname -r), arm64"
 # -------------------------------------------------------------------- deps
 # sdl12-compat: SDL 1.2 API on SDL2 (window, input, GL context).
 # libogg/libvorbis: music and sound decoding the client links against.
-step "Checking dependencies (Homebrew)"
-command -v brew >/dev/null 2>&1 || die "Homebrew is required. Install it from https://brew.sh"
-for pkg in sdl12-compat libogg libvorbis; do
-	if brew list --versions "$pkg" >/dev/null 2>&1; then
-		echo "OK: $pkg $(brew list --versions "$pkg" | awk '{print $2}')"
-	else
-		echo "Installing $pkg ..."
-		brew install "$pkg"
-	fi
-done
+if [ "${SKIP_DEPS:-0}" = "1" ]; then
+	step "Checking dependencies (skipped: SKIP_DEPS=1)"
+else
+	step "Checking dependencies (Homebrew)"
+	command -v brew >/dev/null 2>&1 || die "Homebrew is required. Install it from https://brew.sh"
+	for pkg in sdl12-compat libogg libvorbis; do
+		if brew list --versions "$pkg" >/dev/null 2>&1; then
+			echo "OK: $pkg $(brew list --versions "$pkg" | awk '{print $2}')"
+		else
+			echo "Installing $pkg ..."
+			brew install "$pkg"
+		fi
+	done
+fi
 
 # ------------------------------------------------------------------- build
 step "Building game code (modules + QVMs)"
@@ -60,25 +69,31 @@ make -C "$ENGINE_DIR"
 # -------------------------------------------------------------------- data
 # Game data (pk3) is art/content and stays unaltered and out of git.
 step "Fetching game data"
-mkdir -p "$CACHE"
-fetch_data() {
-	curl -fL --retry 3 -C - -o "$DATA_ZIP.part" "$DATA_URL"
-	mv "$DATA_ZIP.part" "$DATA_ZIP"
-}
-if [ -f "$DATA_ZIP" ]; then
-	echo "Cached: $DATA_ZIP"
+if [ -n "${OA_DATA_ZIP:-}" ]; then
+	[ -f "$DATA_ZIP" ] || die "OA_DATA_ZIP not found: $DATA_ZIP"
+	echo "Using pre-downloaded data: $DATA_ZIP"
 else
-	echo "Downloading $DATA_URL"
-	fetch_data
+	mkdir -p "$CACHE"
+	fetch_data() {
+		curl -fL --retry 3 -C - -o "$DATA_ZIP.part" "$DATA_URL"
+		mv "$DATA_ZIP.part" "$DATA_ZIP"
+	}
+	if [ -f "$DATA_ZIP" ]; then
+		echo "Cached: $DATA_ZIP"
+	else
+		echo "Downloading $DATA_URL"
+		fetch_data
+	fi
 fi
 actual="$(md5 -q "$DATA_ZIP")"
 if [ "$actual" != "$DATA_MD5" ]; then
+	[ -z "${OA_DATA_ZIP:-}" ] || die "game data checksum mismatch: got $actual, want $DATA_MD5"
 	echo "Checksum mismatch ($actual), re-downloading once"
 	rm -f "$DATA_ZIP"
 	fetch_data
 	actual="$(md5 -q "$DATA_ZIP")"
-	[ "$actual" = "$DATA_MD5" ] || die "game data checksum mismatch: got $actual, want $DATA_MD5"
 fi
+[ "$actual" = "$DATA_MD5" ] || die "game data checksum mismatch: got $actual, want $DATA_MD5"
 echo "OK: md5 $actual matches upstream"
 
 # ---------------------------------------------------------------- package
@@ -124,19 +139,20 @@ unzip -qjo "$DATA_ZIP" 'openarena-0.8.8/missionpack/*.pk3' -d "$MACOS/missionpac
 echo "OK: $APP"
 
 # ----------------------------------------------------------------- install
-step "Installing to $INSTALL_DIR"
-if [ -w "$INSTALL_DIR" ]; then
-	rm -rf "$INSTALL_DIR/OpenArena.app"
-	ditto "$APP" "$INSTALL_DIR/OpenArena.app"
+if [ -n "${OA_INSTALL_DIR:-}" ]; then
+	TARGET="$OA_INSTALL_DIR"
+elif [ -w "$INSTALL_DIR" ]; then
+	TARGET="$INSTALL_DIR"
 else
-	INSTALL_DIR="$HOME/Applications"
-	mkdir -p "$INSTALL_DIR"
-	rm -rf "$INSTALL_DIR/OpenArena.app"
-	ditto "$APP" "$INSTALL_DIR/OpenArena.app"
+	TARGET="$HOME/Applications"
+	mkdir -p "$TARGET"
 fi
-echo "OK: $INSTALL_DIR/OpenArena.app"
+step "Installing to $TARGET"
+rm -rf "$TARGET/OpenArena.app"
+ditto "$APP" "$TARGET/OpenArena.app"
+echo "OK: $TARGET/OpenArena.app"
 
 step "Done"
-echo "Play: open \"$INSTALL_DIR/OpenArena.app\""
+echo "Play: open \"$TARGET/OpenArena.app\""
 echo "Note: the game links Homebrew's sdl12-compat/libogg/libvorbis; run this"
 echo "script again after a macOS or Homebrew change to rebuild and reinstall."
